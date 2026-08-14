@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nutrify — Personalized Nutrition for Every Body</title>
+    <meta name="description" content="Nutrify — AI-powered personalized nutrition, ingredient recipes, and food-waste rescue. Fuel Every Body. Waste No Food." />
+
+    <!-- Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              brand: { emerald: '#22C55E', green: '#166534', amber: '#F59E0B', slate: '#0F172A' },
+            },
+            fontFamily: { sans: ['Poppins', 'system-ui', 'sans-serif'] },
+            borderRadius: { '2xl': '1rem', '3xl': '1.5rem' },
+          },
+        },
+      };
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/iife.min.js"></script>
+
+    <!-- Expose Vite env vars to window for the CDN-loaded Supabase client -->
+    <script type="module">
+      window.SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+      window.SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+    </script>
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="font-sans bg-slate-50 text-slate-900 dark:bg-brand-slate dark:text-slate-100 antialiased overflow-x-hidden">
+
+    <!-- ============ LOADING SCREEN ============ -->
+    <div id="loader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-emerald-500 via-emerald-600 to-green-800 transition-opacity duration-700">
+      <div class="loader-bee">
+        <svg viewBox="0 0 120 120" class="w-28 h-28" aria-hidden="true">
+          <ellipse cx="60" cy="68" rx="34" ry="26" fill="#FACC15" />
+          <path d="M40 50 Q60 44 80 50 L80 62 Q60 56 40 62 Z" fill="#1E293B" />
+          <path d="M52 52 L52 74 M68 52 L68 74" stroke="#1E293B" stroke-width="5" />
+          <circle cx="60" cy="40" r="18" fill="#1E293B" />
+          <circle cx="54" cy="36" r="3" fill="#fff" /><circle cx="66" cy="36" r="3" fill="#fff" />
+          <path d="M48 26 Q44 16 38 18 M72 26 Q76 16 82 18" stroke="#1E293B" stroke-width="3" fill="none" />
+          <ellipse cx="30" cy="58" rx="14" ry="10" fill="#fff" opacity="0.85" />
+          <ellipse cx="90" cy="58" rx="14" ry="10" fill="#fff" opacity="0.85" />
+        </svg>
+      </div>
+      <h2 class="mt-6 text-2xl font-extrabold text-white tracking-tight">Nutrify</h2>
+      <p class="mt-1 text-emerald-100 text-sm font-medium">Fuel Every Body. Waste No Food.</p>
+      <div class="loader-bar mt-6"><span></span></div>
+    </div>
+
+    <!-- ============ CURSOR GLOW ============ -->
+    <div id="cursor-glow" class="cursor-glow"></div>
+
+    <!-- ============ NAVBAR ============ -->
+    <header id="navbar" class="fixed top-0 inset-x-0 z-50 transition-all duration-300">
+      <nav class="glass mx-auto max-w-7xl mt-3 mx-3 sm:mx-auto flex items-center justify-between rounded-2xl px-4 sm:px-6 py-3">
+        <a href="#hero" class="flex items-center gap-2 font-extrabold text-lg">
+          <span class="text-2xl">🐝</span>
+          <span class="bg-gradient-to-r from-emerald-500 to-amber-500 bg-clip-text text-transparent">Nutrify</span>
+        </a>
+        <ul class="hidden lg:flex items-center gap-1 text-sm font-medium">
+          <li><a href="#mission" class="nav-link">Mission</a></li>
+          <li><a href="#profile" class="nav-link">Profile</a></li>
+          <li><a href="#dashboard" class="nav-link">Dashboard</a></li>
+          <li><a href="#meals" class="nav-link">Eat Today</a></li>
+          <li><a href="#chef" class="nav-link">Chef</a></li>
+          <li><a href="#waste" class="nav-link">Waste</a></li>
+          <li><a href="#challenge" class="nav-link">Challenge</a></li>
+          <li><a href="#impact" class="nav-link">Impact</a></li>
+          <li><a href="#nutribee" class="nav-link">NutriBee</a></li>
+          <li><a href="#school" class="nav-link">School</a></li>
+        </ul>
+        <div class="flex items-center gap-2">
+          <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode">
+            <svg class="w-5 h-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36 6.36l-.7-.7M6.34 6.34l-.7-.7m12.72 0l-.7.7M6.34 17.66l-.7.7M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            <svg class="w-5 h-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+          </button>
+          <button id="menu-toggle" class="icon-btn lg:hidden" aria-label="Open menu">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+        </div>
+      </nav>
+      <div id="mobile-menu" class="lg:hidden hidden mx-3 mt-2 glass rounded-2xl p-3">
+        <ul class="grid grid-cols-2 gap-1 text-sm font-medium">
+          <li><a href="#mission" class="mobile-link">Mission</a></li>
+          <li><a href="#profile" class="mobile-link">Profile</a></li>
+          <li><a href="#dashboard" class="mobile-link">Dashboard</a></li>
+          <li><a href="#meals" class="mobile-link">Eat Today</a></li>
+          <li><a href="#chef" class="mobile-link">Chef</a></li>
+          <li><a href="#waste" class="mobile-link">Waste</a></li>
+          <li><a href="#challenge" class="mobile-link">Challenge</a></li>
+          <li><a href="#impact" class="mobile-link">Impact</a></li>
+          <li><a href="#nutribee" class="mobile-link">NutriBee</a></li>
+          <li><a href="#school" class="mobile-link">School</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+      <!-- ============ HERO ============ -->
+      <section id="hero" class="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16">
+        <div class="hero-bg"></div>
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="floating-fruits" aria-hidden="true">
+          <span class="ff" style="--x:8%;--y:22%;--d:0s">🍎</span>
+          <span class="ff" style="--x:88%;--y:18%;--d:1.2s">🥑</span>
+          <span class="ff" style="--x:14%;--y:74%;--d:2.1s">🥕</span>
+          <span class="ff" style="--x:82%;--y:70%;--d:0.6s">🍌</span>
+          <span class="ff" style="--x:46%;--y:12%;--d:1.8s">🫐</span>
+          <span class="ff" style="--x:70%;--y:46%;--d:2.6s">🍅</span>
+        </div>
+        <div class="relative z-10 mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-12 items-center">
+          <div class="reveal text-center lg:text-left">
+            <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-4 py-1.5 text-sm font-semibold">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> 1M1B Changemakers World Cup
+            </span>
+            <h1 class="mt-6 text-4xl sm:text-6xl font-extrabold leading-[1.05] tracking-tight">
+              Personalized Nutrition
+              <span class="block bg-gradient-to-r from-emerald-500 via-green-500 to-amber-500 bg-clip-text text-transparent">for Every Body</span>
+            </h1>
+            <p class="mt-6 text-lg text-slate-600 dark:text-slate-300 max-w-xl mx-auto lg:mx-0">
+              Meet <strong class="text-amber-500">NutriBee</strong> 🐝 — your AI nutrition buddy. Get personalized meals, turn leftovers into recipes, and rescue food from the bin.
+            </p>
+            <p class="mt-2 text-emerald-700 dark:text-emerald-300 font-semibold italic">"Fuel Every Body. Waste No Food."</p>
+            <div class="mt-8 flex flex-wrap gap-3 justify-center lg:justify-start">
+              <a href="#profile" class="btn-primary ripple">Start Your Journey</a>
+              <a href="#mission" class="btn-ghost ripple">Learn the Mission</a>
+            </div>
+          </div>
+          <div class="reveal relative flex justify-center">
+            <div class="bee-hero-card">
+              <svg viewBox="0 0 240 240" class="w-72 h-72 sm:w-96 sm:h-96" role="img" aria-label="NutriBee mascot">
+                <defs>
+                  <radialGradient id="beeBody" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#FDE68A" /><stop offset="100%" stop-color="#F59E0B" /></radialGradient>
+                  <linearGradient id="cape" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22C55E" /><stop offset="100%" stop-color="#166534" /></linearGradient>
+                </defs>
+                <ellipse cx="120" cy="150" rx="78" ry="62" fill="url(#beeBody)" />
+                <path d="M70 110 Q120 96 170 110 L170 150 Q120 136 70 150 Z" fill="#0F172A" />
+                <path d="M96 104 L96 196 M144 104 L144 196" stroke="#0F172A" stroke-width="10" />
+                <circle cx="120" cy="86" r="40" fill="#0F172A" />
+                <circle cx="108" cy="78" r="7" fill="#fff" /><circle cx="132" cy="78" r="7" fill="#fff" />
+                <circle cx="108" cy="78" r="3" fill="#0F172A" /><circle cx="132" cy="78" r="3" fill="#0F172A" />
+                <path d="M96 56 Q86 30 70 34 M144 56 Q154 30 170 34" stroke="#0F172A" stroke-width="6" fill="none" stroke-linecap="round" />
+                <path d="M120 46 L120 30 M112 34 L120 30 L128 34" stroke="#F59E0B" stroke-width="4" fill="none" stroke-linecap="round" />
+                <path d="M42 120 Q20 150 42 200 Q70 170 60 130 Z" fill="url(#cape)" />
+                <ellipse cx="50" cy="130" rx="30" ry="22" fill="#fff" opacity="0.9" />
+                <ellipse cx="190" cy="130" rx="30" ry="22" fill="#fff" opacity="0.9" />
+                <path d="M120 212 Q100 232 80 220 M120 212 Q140 232 160 220" stroke="#0F172A" stroke-width="4" fill="none" stroke-linecap="round" />
+              </svg>
+              <div class="bee-ring"></div>
+            </div>
+          </div>
+        </div>
+        <a href="#mission" class="scroll-indicator" aria-label="Scroll down"><span></span></a>
+      </section>
+
+      <!-- ============ MISSION ============ -->
+      <section id="mission" class="py-24 px-6">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">The Problem</span>
+            <h2 class="section-title">Mission 2: The Nutrition &amp; Waste Crisis</h2>
+            <p class="section-sub">Billions lack balanced nutrition while a third of all food is wasted. Nutrify tackles both — on the same plate.</p>
+          </div>
+          <div class="mt-14 grid md:grid-cols-3 gap-6">
+            <article class="reveal glass-card">
+              <div class="text-4xl">🍽️</div>
+              <h3 class="mt-4 text-xl font-bold">Hidden Hunger</h3>
+              <p class="mt-2 text-slate-600 dark:text-slate-300 text-sm">Over 2 billion people survive on calories but miss the protein, iron and vitamins their bodies need to grow and focus.</p>
+            </article>
+            <article class="reveal glass-card">
+              <div class="text-4xl">🗑️</div>
+              <h3 class="mt-4 text-xl font-bold">Food Waste</h3>
+              <p class="mt-2 text-slate-600 dark:text-slate-300 text-sm">One-third of all food produced is thrown away — wasting the water, land and energy that made it, and fueling emissions.</p>
+            </article>
+            <article class="reveal glass-card">
+              <div class="text-4xl">🐝</div>
+              <h3 class="mt-4 text-xl font-bold">Our Answer</h3>
+              <p class="mt-2 text-slate-600 dark:text-slate-300 text-sm">Personalized meals built around what you already have, so good nutrition and zero waste become the same daily habit.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PROFILE ============ -->
+      <section id="profile" class="py-24 px-6 bg-gradient-to-b from-transparent via-emerald-50/50 to-transparent dark:via-emerald-900/10">
+        <div class="mx-auto max-w-5xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">Onboarding</span>
+            <h2 class="section-title">Build Your Profile</h2>
+            <p class="section-sub">Tell NutriBee about you and watch your avatar come to life — your plan is built from these answers.</p>
+          </div>
+          <div class="mt-12 grid lg:grid-cols-5 gap-8 items-start">
+            <div class="lg:col-span-2 reveal">
+              <div class="glass-card text-center sticky top-28">
+                <div class="mx-auto w-44 h-44 rounded-3xl bg-gradient-to-br from-emerald-100 to-amber-100 dark:from-emerald-900/40 dark:to-amber-900/30 flex items-center justify-center overflow-hidden ring-4 ring-emerald-500/20">
+                  <img id="avatar-preview" alt="Your avatar" class="w-full h-full" />
+                </div>
+                <h3 id="avatar-name" class="mt-4 text-xl font-bold">Your Avatar</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Updates live as you type your name</p>
+                <div id="profile-saved-badge" class="hidden mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-3 py-1 text-xs font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Profile saved
+                </div>
+              </div>
+            </div>
+            <form id="profile-form" class="lg:col-span-3 reveal glass-card grid sm:grid-cols-2 gap-5" novalidate>
+              <div class="sm:col-span-2">
+                <label class="form-label" for="p-name">Full Name</label>
+                <input id="p-name" name="name" class="form-input" placeholder="e.g. Viyan" required />
+                <p class="form-error" data-for="p-name"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-age">Age</label>
+                <input id="p-age" name="age" type="number" min="5" max="120" class="form-input" placeholder="e.g. 16" required />
+                <p class="form-error" data-for="p-age"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-gender">Gender</label>
+                <select id="p-gender" name="gender" class="form-input" required>
+                  <option value="">Select…</option>
+                  <option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option>
+                </select>
+                <p class="form-error" data-for="p-gender"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-dob">Date of Birth</label>
+                <input id="p-dob" name="date_of_birth" type="date" class="form-input" />
+                <p class="form-error" data-for="p-dob"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-height">Height (cm)</label>
+                <input id="p-height" name="height" type="number" min="80" max="250" class="form-input" placeholder="e.g. 165" required />
+                <p class="form-error" data-for="p-height"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-weight">Weight (kg)</label>
+                <input id="p-weight" name="weight" type="number" min="20" max="300" class="form-input" placeholder="e.g. 58" required />
+                <p class="form-error" data-for="p-weight"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-profession">Profession</label>
+                <select id="p-profession" name="profession" class="form-input" required>
+                  <option value="">Select…</option>
+                  <option>School Student</option><option>College Student</option><option>Office Employee</option>
+                  <option>Teacher</option><option>Doctor</option><option>Engineer</option>
+                  <option>Athlete</option><option>Homemaker</option><option>Business Owner</option>
+                  <option>Freelancer</option><option>Senior Citizen</option><option>Other</option>
+                </select>
+                <p class="form-error" data-for="p-profession"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-student-class">Student Class (if student)</label>
+                <input id="p-student-class" name="student_class" class="form-input" placeholder="e.g. Class 10" />
+              </div>
+              <div>
+                <label class="form-label" for="p-organization">Organization / School (optional)</label>
+                <input id="p-organization" name="organization" class="form-input" placeholder="e.g. Delhi Public School" />
+              </div>
+              <div>
+                <label class="form-label" for="p-city">City</label>
+                <input id="p-city" name="city" class="form-input" placeholder="e.g. Bengaluru" />
+              </div>
+              <div>
+                <label class="form-label" for="p-country">Country</label>
+                <input id="p-country" name="country" class="form-input" placeholder="e.g. India" />
+              </div>
+              <div>
+                <label class="form-label" for="p-activity">Activity Level</label>
+                <select id="p-activity" name="activity" class="form-input" required>
+                  <option value="">Select…</option>
+                  <option value="sedentary">Sedentary</option>
+                  <option value="lightly">Lightly Active</option>
+                  <option value="moderately">Moderately Active</option>
+                  <option value="very">Very Active</option>
+                  <option value="athlete">Athlete</option>
+                </select>
+                <p class="form-error" data-for="p-activity"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-goal">Goal</label>
+                <select id="p-goal" name="goal" class="form-input" required>
+                  <option value="">Select…</option>
+                  <option value="maintain">Maintain Health</option>
+                  <option value="muscle">Build Muscle</option>
+                  <option value="energy">Increase Energy</option>
+                  <option value="weight">Weight Management</option>
+                  <option value="sports">Sports Performance</option>
+                </select>
+                <p class="form-error" data-for="p-goal"></p>
+              </div>
+              <div>
+                <label class="form-label" for="p-diet">Dietary Preference</label>
+                <select id="p-diet" name="diet" class="form-input" required>
+                  <option value="">Select…</option>
+                  <option value="veg">Vegetarian</option>
+                  <option value="vegan">Vegan</option>
+                  <option value="egg">Eggetarian</option>
+                  <option value="jain">Jain</option>
+                  <option value="nonveg">Non-Vegetarian</option>
+                </select>
+                <p class="form-error" data-for="p-diet"></p>
+              </div>
+              <div class="sm:col-span-2 flex flex-wrap gap-3 pt-1">
+                <button type="submit" class="btn-primary ripple" id="profile-submit">Save Profile</button>
+                <button type="button" id="reset-profile" class="btn-ghost ripple">Reset</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ DASHBOARD ============ -->
+      <section id="dashboard" class="py-24 px-6">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">Your Dashboard</span>
+            <h2 class="section-title">Welcome Back</h2>
+            <p class="section-sub">Your daily nutrition targets, streaks and trends — all from your real data.</p>
+          </div>
+          <!-- Skeleton -->
+          <div id="dashboard-skeleton" class="hidden mt-12 grid gap-6">
+            <div class="grid lg:grid-cols-3 gap-6">
+              <div class="skeleton-card"></div>
+              <div class="skeleton-card lg:col-span-2 h-32"></div>
+            </div>
+            <div class="grid lg:grid-cols-2 gap-6">
+              <div class="skeleton-card h-64"></div>
+              <div class="skeleton-card h-64"></div>
+            </div>
+          </div>
+          <!-- Empty state -->
+          <div id="dashboard-empty" class="hidden reveal glass-card text-center max-w-md mx-auto mt-10">
+            <div class="text-5xl">🐝</div>
+            <h3 class="mt-4 text-xl font-bold">No profile yet</h3>
+            <p class="mt-2 text-slate-500 dark:text-slate-400 text-sm">Complete your profile above to unlock your personalized dashboard.</p>
+            <a href="#profile" class="btn-primary ripple mt-5 inline-flex">Create Profile</a>
+          </div>
+          <!-- Content -->
+          <div id="dashboard-content" class="hidden mt-12 grid gap-6">
+            <div class="grid lg:grid-cols-3 gap-6">
+              <div class="reveal glass-card flex items-center gap-4">
+                <img id="dash-avatar" alt="avatar" class="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40" />
+                <div>
+                  <p class="text-sm text-slate-500 dark:text-slate-400" id="dash-greet">Hello</p>
+                  <h3 id="dash-name" class="text-xl font-bold">—</h3>
+                  <p id="dash-sub" class="text-xs text-emerald-600 dark:text-emerald-300 font-semibold mt-1">—</p>
+                </div>
+              </div>
+              <div class="reveal glass-card lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="ring-wrap">
+                  <svg class="ring" viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32" /><circle class="ring-fg" data-ring="energy" cx="40" cy="40" r="32" /></svg>
+                  <div class="ring-label"><span data-ring-val="energy">0</span><small>kcal goal</small></div>
+                </div>
+                <div class="ring-wrap">
+                  <svg class="ring" viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32" /><circle class="ring-fg" data-ring="water" cx="40" cy="40" r="32" /></svg>
+                  <div class="ring-label"><span data-ring-val="water">0</span><small>water (L)</small></div>
+                </div>
+                <div class="ring-wrap">
+                  <svg class="ring" viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32" /><circle class="ring-fg" data-ring="protein" cx="40" cy="40" r="32" /></svg>
+                  <div class="ring-label"><span data-ring-val="protein">0</span><small>protein (g)</small></div>
+                </div>
+                <div class="ring-wrap">
+                  <svg class="ring" viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32" /><circle class="ring-fg" data-ring="wellness" cx="40" cy="40" r="32" /></svg>
+                  <div class="ring-label"><span data-ring-val="wellness">0</span><small>wellness</small></div>
+                </div>
+              </div>
+            </div>
+            <div class="grid lg:grid-cols-3 gap-6">
+              <div class="reveal glass-card flex items-center gap-4">
+                <div class="text-4xl">🔥</div>
+                <div>
+                  <h3 class="text-2xl font-extrabold"><span id="dash-streak">0</span>-day streak</h3>
+                  <p class="text-sm text-slate-500 dark:text-slate-400">Challenge streak — keep it alive!</p>
+                </div>
+              </div>
+              <div class="reveal glass-card lg:col-span-2 flex items-start gap-4">
+                <div class="text-4xl">💡</div>
+                <div class="flex-1">
+                  <h3 class="font-bold">Wellness Tip</h3>
+                  <p id="wellness-tip" class="text-sm text-slate-600 dark:text-slate-300 mt-1">Loading tip…</p>
+                  <button id="new-tip" class="btn-ghost ripple mt-3 text-sm">New Tip</button>
+                </div>
+              </div>
+            </div>
+            <div class="grid lg:grid-cols-3 gap-6">
+              <div class="reveal glass-card">
+                <h3 class="font-bold mb-3">Weekly Balanced Meals</h3>
+                <div class="chart-box"><canvas id="chart-meals"></canvas></div>
+              </div>
+              <div class="reveal glass-card">
+                <h3 class="font-bold mb-3">Water Intake (glasses)</h3>
+                <div class="chart-box"><canvas id="chart-water"></canvas></div>
+              </div>
+              <div class="reveal glass-card">
+                <h3 class="font-bold mb-3">Food Waste Reduction (kg)</h3>
+                <div class="chart-box"><canvas id="chart-waste"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ WHAT SHOULD I EAT TODAY ============ -->
+      <section id="meals" class="py-24 px-6 bg-gradient-to-b from-transparent via-amber-50/40 to-transparent dark:via-amber-900/10">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">What Should I Eat Today</span>
+            <h2 class="section-title">Your Personalized Plan</h2>
+            <p class="section-sub">Built from your profession, activity, goal, diet and time of day — four meals, every day.</p>
+          </div>
+          <div id="meals-empty" class="hidden reveal glass-card text-center max-w-md mx-auto mt-10">
+            <div class="text-5xl">🍽️</div>
+            <h3 class="mt-4 text-xl font-bold">Profile needed</h3>
+            <p class="mt-2 text-slate-500 dark:text-slate-400 text-sm">Save your profile to generate meals tuned to you.</p>
+            <a href="#profile" class="btn-primary ripple mt-5 inline-flex">Create Profile</a>
+          </div>
+          <div id="meals-content" class="hidden mt-12">
+            <div class="flex flex-wrap items-center justify-center gap-3 mb-8">
+              <span id="meals-summary" class="text-sm text-slate-500 dark:text-slate-400"></span>
+              <button id="generate-meals" class="btn-primary ripple">Generate New Plan</button>
+            </div>
+            <div id="meals-grid" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+            <p class="mt-6 text-center text-xs text-slate-400 dark:text-slate-500 italic">Nutrify provides general nutrition guidance, not medical advice. Consult a professional for specific dietary needs.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ INGREDIENT CHEF ============ -->
+      <section id="chef" class="py-24 px-6">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">Ingredient Chef</span>
+            <h2 class="section-title">Cook With What You Have</h2>
+            <p class="section-sub">Pick the ingredients in your kitchen — NutriBee matches them to recipes and tells you how much food you'd save.</p>
+          </div>
+          <div class="reveal glass-card mt-10">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div class="relative flex-1 min-w-[200px]">
+                <input id="chef-search" type="text" class="form-input pl-9" placeholder="Search ingredients…" />
+                <svg class="w-4 h-4 absolute left-3 top-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+              </div>
+              <div class="flex gap-2">
+                <button id="chef-clear" class="btn-ghost ripple text-sm">Clear</button>
+                <button id="chef-surprise" class="btn-ghost ripple text-sm">Surprise Me</button>
+              </div>
+            </div>
+            <div id="ingredient-chips" class="flex flex-wrap gap-2"></div>
+            <p id="chef-selected-count" class="mt-4 text-sm text-slate-500 dark:text-slate-400">0 selected</p>
+          </div>
+          <div id="chef-empty" class="mt-8 text-center text-slate-500 dark:text-slate-400">
+            <div class="text-4xl">🥘</div>
+            <p class="mt-2 text-sm">Select at least 2 ingredients to discover recipes.</p>
+          </div>
+          <div id="recipe-grid" class="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+      </section>
+
+      <!-- ============ WASTE LESS ============ -->
+      <section id="waste" class="py-24 px-6 bg-gradient-to-b from-transparent via-emerald-50/50 to-transparent dark:via-emerald-900/10">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">Waste Less</span>
+            <h2 class="section-title">Rescue Your Leftovers</h2>
+            <p class="section-sub">Mark what's expiring soon and turn it into a meal before it becomes waste. Every rescue is saved to your record.</p>
+          </div>
+          <div class="grid lg:grid-cols-3 gap-6 mt-12">
+            <div class="reveal glass-card">
+              <h3 class="font-bold mb-3">Expiring soon</h3>
+              <div id="waste-ingredients" class="grid grid-cols-2 gap-2"></div>
+              <button id="waste-generate" class="btn-primary ripple mt-5 w-full">Generate Rescue Meal</button>
+            </div>
+            <div class="reveal glass-card lg:col-span-2">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold">This week's rescue</h3>
+                <span id="rescue-streak" class="text-sm font-semibold text-emerald-600 dark:text-emerald-300">0-day streak</span>
+              </div>
+              <div class="waste-meter"><div class="waste-meter-fill" id="waste-meter-fill"></div></div>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-2"><span id="waste-rescued">0</span> ingredients rescued • <span id="waste-avoided">0</span> kg waste avoided</p>
+              <div id="waste-meal" class="mt-6"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 7-DAY CHALLENGE ============ -->
+      <section id="challenge" class="py-24 px-6">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">7-Day Smart Plate Challenge</span>
+            <h2 class="section-title">Build the Habit</h2>
+            <p class="section-sub">Seven days, three checks a day. Complete them all and celebrate with confetti. Each day is saved automatically.</p>
+          </div>
+          <div class="reveal glass-card mt-10 max-w-3xl mx-auto">
+            <div class="grid grid-cols-3 gap-4 text-center">
+              <div><div id="chal-completion" class="text-3xl font-extrabold text-emerald-500">0%</div><div class="text-xs text-slate-500 dark:text-slate-400">Completion</div></div>
+              <div><div id="chal-streak" class="text-3xl font-extrabold text-amber-500">0</div><div class="text-xs text-slate-500 dark:text-slate-400">Day Streak</div></div>
+              <div><div id="chal-score" class="text-3xl font-extrabold text-green-700 dark:text-emerald-300">0</div><div class="text-xs text-slate-500 dark:text-slate-400">Weekly Score</div></div>
+            </div>
+          </div>
+          <div id="challenge-grid" class="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-5"></div>
+          <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+        </div>
+      </section>
+
+      <!-- ============ COMMUNITY IMPACT ============ -->
+      <section id="impact" class="py-24 px-6 bg-gradient-to-b from-transparent via-amber-50/40 to-transparent dark:via-amber-900/10">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">Community Impact</span>
+            <h2 class="section-title">Real Mission 2 Data</h2>
+            <p class="section-sub">Every number here comes from your Supabase database. Nutrify never invents impact — it only visualizes what you measured.</p>
+          </div>
+
+          <!-- Metric cards -->
+          <div id="impact-metrics" class="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <!-- filled by JS -->
+          </div>
+
+          <!-- Survey input + chart -->
+          <div class="grid lg:grid-cols-3 gap-6 mt-8">
+            <div class="reveal glass-card">
+              <h3 class="font-bold mb-4">Add a survey entry</h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="form-label" for="i-volunteers">Volunteers</label>
+                  <input id="i-volunteers" type="number" min="0" class="form-input" placeholder="e.g. 24" />
+                </div>
+                <div>
+                  <label class="form-label" for="i-before">Before — avg nutrition score</label>
+                  <input id="i-before" type="number" min="0" max="100" class="form-input" placeholder="e.g. 42" />
+                </div>
+                <div>
+                  <label class="form-label" for="i-after">After — avg nutrition score</label>
+                  <input id="i-after" type="number" min="0" max="100" class="form-input" placeholder="e.g. 71" />
+                </div>
+                <div>
+                  <label class="form-label" for="i-participants">Active Challenge Participants</label>
+                  <input id="i-participants" type="number" min="0" class="form-input" placeholder="e.g. 18" />
+                </div>
+                <div>
+                  <label class="form-label" for="i-label">Label (optional)</label>
+                  <input id="i-label" type="text" class="form-input" placeholder="e.g. School A — Batch 1" />
+                </div>
+                <button id="impact-submit" class="btn-primary ripple w-full">Save Survey Entry</button>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Saved to Supabase. Charts update automatically.</p>
+              </div>
+            </div>
+            <div class="reveal glass-card lg:col-span-2">
+              <h3 class="font-bold mb-3">Before vs After — All Survey Entries</h3>
+              <div class="chart-box"><canvas id="chart-impact"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Interview wall -->
+          <div class="mt-12">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <h3 class="reveal text-xl font-bold">Interview Wall</h3>
+              <button id="add-quote-btn" class="btn-ghost ripple text-sm">+ Add Interview</button>
+            </div>
+            <!-- Add interview form (hidden by default) -->
+            <div id="interview-form" class="hidden reveal glass-card mb-6">
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label" for="iv-name">Name</label>
+                  <input id="iv-name" class="form-input" placeholder="e.g. Ananya Rao" />
+                </div>
+                <div>
+                  <label class="form-label" for="iv-profession">Profession</label>
+                  <input id="iv-profession" class="form-input" placeholder="e.g. Class 10 Student" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="form-label" for="iv-quote">Quote</label>
+                  <textarea id="iv-quote" class="form-input" rows="3" placeholder="What changed for them?"></textarea>
+                </div>
+                <div class="sm:col-span-2 flex gap-3">
+                  <button id="iv-submit" class="btn-primary ripple">Save Interview</button>
+                  <button id="iv-cancel" class="btn-ghost ripple">Cancel</button>
+                </div>
+              </div>
+            </div>
+            <div id="quote-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <!-- filled by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ NUTRIBEE ============ -->
+      <section id="nutribee" class="py-24 px-6">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">Meet NutriBee</span>
+            <h2 class="section-title">Your AI Nutrition Hero</h2>
+            <p class="section-sub">A futuristic bee on a mission to fuel every body and waste no food.</p>
+          </div>
+          <div class="grid lg:grid-cols-2 gap-12 items-center mt-14">
+            <div class="reveal flex justify-center">
+              <div class="nutribee-hero">
+                <svg viewBox="0 0 260 260" class="w-72 h-72 sm:w-96 sm:h-96" role="img" aria-label="NutriBee hero">
+                  <defs>
+                    <radialGradient id="nbBody" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#FEF3C7" /><stop offset="100%" stop-color="#F59E0B" /></radialGradient>
+                    <linearGradient id="nbCape" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#34D399" /><stop offset="100%" stop-color="#166534" /></linearGradient>
+                    <filter id="nbGlow"><feGaussianBlur stdDeviation="6" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                  </defs>
+                  <g filter="url(#nbGlow)">
+                    <ellipse cx="130" cy="160" rx="84" ry="66" fill="url(#nbBody)" />
+                    <path d="M72 118 Q130 102 188 118 L188 160 Q130 144 72 160 Z" fill="#0F172A" />
+                    <path d="M104 112 L104 206 M156 112 L156 206" stroke="#0F172A" stroke-width="11" />
+                    <circle cx="130" cy="92" r="44" fill="#0F172A" />
+                    <circle cx="116" cy="84" r="8" fill="#fff" /><circle cx="144" cy="84" r="8" fill="#fff" />
+                    <circle cx="116" cy="84" r="4" fill="#22C55E" /><circle cx="144" cy="84" r="4" fill="#22C55E" />
+                    <path d="M104 60 Q92 28 74 34 M156 60 Q168 28 186 34" stroke="#0F172A" stroke-width="7" fill="none" stroke-linecap="round" />
+                    <path d="M130 50 L130 30 M120 36 L130 30 L140 36" stroke="#F59E0B" stroke-width="5" fill="none" stroke-linecap="round" />
+                    <path d="M40 130 Q14 162 40 216 Q72 184 60 138 Z" fill="url(#nbCape)" />
+                    <ellipse cx="54" cy="140" rx="34" ry="24" fill="#fff" opacity="0.92" />
+                    <ellipse cx="206" cy="140" rx="34" ry="24" fill="#fff" opacity="0.92" />
+                  </g>
+                </svg>
+                <div class="nutribee-aura"></div>
+              </div>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-5">
+              <article class="reveal glass-card"><div class="text-3xl">⚡</div><h3 class="mt-3 font-bold">Superpower</h3><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Turns any ingredients into a balanced, personalized meal in seconds.</p></article>
+              <article class="reveal glass-card"><div class="text-3xl">🎯</div><h3 class="mt-3 font-bold">Mission</h3><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Make good nutrition effortless for every body, everywhere.</p></article>
+              <article class="reveal glass-card"><div class="text-3xl">🌍</div><h3 class="mt-3 font-bold">Impact</h3><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Every rescued meal cuts waste and the emissions that come with it.</p></article>
+              <article class="reveal glass-card"><div class="text-3xl">♻️</div><h3 class="mt-3 font-bold">Sustainability</h3><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">A daily habit that feeds people first and the planet by extension.</p></article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCHOOL HUB ============ -->
+      <section id="school" class="py-24 px-6 bg-gradient-to-b from-transparent via-emerald-50/50 to-transparent dark:via-emerald-900/10">
+        <div class="mx-auto max-w-7xl">
+          <div class="reveal text-center max-w-2xl mx-auto">
+            <span class="section-tag">School Hub</span>
+            <h2 class="section-title">Bring Nutrify to Your School</h2>
+            <p class="section-sub">Everything a teacher or student leader needs to launch a Nutrify chapter.</p>
+          </div>
+          <div class="grid lg:grid-cols-3 gap-6 mt-12">
+            <div class="reveal glass-card text-center">
+              <div class="qr-placeholder mx-auto"><div class="qr-grid"></div></div>
+              <h3 class="mt-4 font-bold">Scan to Join</h3>
+              <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Point a phone camera here to open Nutrify.</p>
+            </div>
+            <div class="reveal glass-card">
+              <div class="text-3xl">👩‍🏫</div>
+              <h3 class="mt-3 font-bold">Teacher Toolkit</h3>
+              <ul class="mt-2 text-sm text-slate-600 dark:text-slate-300 list-disc list-inside space-y-1">
+                <li>Lesson plan slides</li><li>Printable nutrition tracker</li><li>Class dashboard access</li><li>Parent consent template</li>
+              </ul>
+            </div>
+            <div class="reveal glass-card">
+              <div class="text-3xl">🧑‍🎓</div>
+              <h3 class="mt-3 font-bold">Student Leader Guide</h3>
+              <ul class="mt-2 text-sm text-slate-600 dark:text-slate-300 list-disc list-inside space-y-1">
+                <li>Run a 7-day challenge</li><li>Collect before/after data</li><li>Host a leftover-cook night</li><li>Report impact to 1M1B</li>
+              </ul>
+            </div>
+          </div>
+          <div class="grid lg:grid-cols-2 gap-6 mt-6">
+            <div class="reveal glass-card">
+              <div class="text-3xl">📋</div>
+              <h3 class="mt-3 font-bold">7-Day Challenge Guide</h3>
+              <ol class="mt-2 text-sm text-slate-600 dark:text-slate-300 list-decimal list-inside space-y-1">
+                <li>Register your school and set a start date</li>
+                <li>Each student creates a Nutrify profile</li>
+                <li>Track balanced meals, water and leftovers daily</li>
+                <li>Log before/after nutrition scores in Community Impact</li>
+                <li>Celebrate completion and submit results to 1M1B</li>
+              </ol>
+            </div>
+            <div class="reveal glass-card">
+              <div class="text-3xl">✅</div>
+              <h3 class="mt-3 font-bold">Replication Checklist</h3>
+              <ul class="mt-2 text-sm text-slate-600 dark:text-slate-300 space-y-1">
+                <li>☑ Identify a teacher mentor</li>
+                <li>☑ Recruit 2 student leaders</li>
+                <li>☑ Set up Nutrify profiles for participants</li>
+                <li>☑ Print the challenge poster</li>
+                <li>☑ Schedule before/after survey dates</li>
+                <li>☑ Plan a celebration event</li>
+              </ul>
+            </div>
+          </div>
+          <div class="reveal glass-card mt-6 text-center">
+            <div class="text-3xl">🖼️</div>
+            <h3 class="mt-3 font-bold">Printable Challenge Poster</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Pin this 7-day tracker on your classroom wall.</p>
+            <button id="print-poster" class="btn-primary ripple mt-4">Download Poster</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="px-6 py-12 border-t border-slate-200/60 dark:border-slate-800/60">
+      <div class="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2 font-extrabold">
+          <span class="text-2xl">🐝</span>
+          <span class="bg-gradient-to-r from-emerald-500 to-amber-500 bg-clip-text text-transparent">Nutrify</span>
+        </div>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Fuel Every Body. Waste No Food. — Built for the 1M1B Changemakers World Cup.</p>
+      </div>
+    </footer>
+
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[90] flex flex-col gap-2"></div>
+
+    <script type="module" src="/script.js"></script>
+  </body>
+</html>
