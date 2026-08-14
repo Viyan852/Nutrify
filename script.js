@@ -5,6 +5,8 @@
    ============================================================ */
 'use strict';
 
+import { createClient } from "@supabase/supabase-js";
+
 /* ============================================================
    MODULE: Supabase Client
    Singleton connection using env vars from .env (injected
@@ -26,7 +28,7 @@ const SupabaseClient = (() => {
       console.warn('Supabase env vars not found — app will run in offline mode.');
       return null;
     }
-    _client = window.supabase.createClient(url, key);
+    _client = createClient(url, key);
     return _client;
   }
 
